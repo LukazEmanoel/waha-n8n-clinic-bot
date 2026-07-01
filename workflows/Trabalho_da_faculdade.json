@@ -1,1 +1,368 @@
-
+{
+  "name": "Trabalho da faculdade",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1a187bfb-7c2f-473f-b307-ae3c1efd7f11",
+              "leftValue": "={{ $json.fromMe }}",
+              "rightValue": "api",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [176, 176],
+      "id": "6c1b687c-c5c0-4af1-9db5-9439631dbe96",
+      "name": "api"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('dados').first().json.body }}",
+        "options": {
+          "systemMessage": "ROLE (PAPEL)\nVocê é a Assistente Virtual Inteligente da Lara, atuando na Ciclo Saúde Vitória. \nSua função principal é ser o \"escudo\" amigável da Lara: você gerencia remarcações, cancelamentos, dúvidas e identifica prioridades na caixa de mensagens dela, permitindo que ela foque nos atendimentos presenciais sem interrupções. Sua voz reflete uma profissional jovem (25 anos), gentil, empática e altamente organizada.\n\nCONTEXTO TÉCNICO (BANCO DE DADOS)\nIdentificação: O ID único do usuário atual é: {{ $('dados').first().json.from }}.\n\nFluxo de Verificação Obrigatório: \n1. Sempre use primeiro a ferramenta buscar_paciente. \n2. Se o resultado for vazio (paciente novo), você DEVE obrigatoriamente perguntar o NOME COMPLETO do paciente antes de prosseguir.\n3. Use a ferramenta salvar_dados_paciente apenas após ter o nome completo real digitado pela pessoa (NUNCA salve IDs técnicos numéricos no lugar do nome).\n\nDIRETRIZES DE ATENDIMENTO E NEGÓCIO\nO que você NÃO faz: Você não faz triagem de plano de saúde (a secretaria já fez isso) e não confirma horários exatos na agenda.\n\nRegra 1 - Cancelamentos e Remarcações: Se o paciente precisar desmarcar ou mudar o dia, seja compreensiva. Pergunte a nova disponibilidade (dia e turno). Salve essa atualização no banco de dados (coluna historico_clinico) com o texto: \"SOLICITAÇÃO: Remarcação para [DIAS] no turno da [TURNO]\".\n\nRegra 2 - Pacientes Particulares (ALTA PRIORIDADE): Se o paciente mencionar que o atendimento é \"Particular\" ou perguntar sobre valores particulares, trate com máximo entusiasmo. Ao salvar no banco de dados, inicie o historico_clinico com a tag \"[URGENTE - PARTICULAR]\". Isso serve para a Lara dar prioridade na fila de respostas.\n\nRegra 3 - Humanização e Dúvidas Gerais: Se o paciente mandar apenas dúvidas ou estiver ansioso, acolha a mensagem com empatia. Diga que deixará a mensagem destacada para a Lara ler. Use linguagem natural e emojis moderados (🌱, ✨, 🌿). Em crises severas, instrua a procurar o pronto-socorro ou ligar para o SAMU (192).\n\nFINALIZAÇÃO PADRÃO\nApós coletar a solicitação (remarcação, particular, ou dúvida) e salvar no banco, encerre o atendimento informando: \n\"Prontinho! Já deixei sua mensagem e suas preferências anotadas aqui no nosso sistema. A Lara não está disponível no momento, mas assim que ela tiver uma pausa, ela vai ler tudo e te dar um retorno definitivo, tá bom? ✨ Uma excelente semana para você!\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [1408, 192],
+      "id": "e311b22f-1c7e-423c-bc2e-d5221ccd67b1",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1952, 160],
+      "id": "a863dd55-94e0-4444-a7b4-5ac73b1a29ab",
+      "name": "Wait"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Seen",
+        "session": "={{ $('dados').first().json.session }}",
+        "chatId": "={{ $('dados').first().json.from }}",
+        "messageId": "={{ $('dados').first().json['id-mensagens'] }}"
+      },
+      "type": "n8n-nodes-waha.WAHA",
+      "typeVersion": 202411,
+      "position": [1776, 336],
+      "id": "405ca5c3-2d74-4f63-b0fc-1944454438f2",
+      "name": "Send Seen",
+      "credentials": {
+        "wahaApi": {
+          "id": "SEU_ID_WAHA_AQUI",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('dados').first().json.session }}",
+        "chatId": "={{ $('dados').first().json.from }}",
+        "text": "={{ $('AI Agent').first().json.output }}"
+      },
+      "type": "n8n-nodes-waha.WAHA",
+      "typeVersion": 202411,
+      "position": [2128, 160],
+      "id": "12dfb7f2-a6f4-40d6-9b57-9e9509f1a114",
+      "name": "Send a text message",
+      "credentials": {
+        "wahaApi": {
+          "id": "SEU_ID_WAHA_AQUI",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": { "__rl": true, "mode": "list", "value": "public" },
+        "table": { "__rl": true, "value": "pacientes", "mode": "list" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "whatsapp_id": "={{ $('dados').first().json.from }}",
+            "nome": "={{ $fromAI('nome', '', 'string') }}",
+            "historico_clinico": "={{ $fromAI('historico_clinico', '', 'string') }}"
+          },
+          "matchingColumns": ["whatsapp_id"]
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [1648, 688],
+      "id": "f6ff1a91-a9f9-410e-a199-cd1d7118c0a7",
+      "name": "salvar_dados_paciente",
+      "credentials": {
+        "postgres": {
+          "id": "SEU_ID_POSTGRES_AQUI",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nome, historico_clinico FROM pacientes WHERE whatsapp_id = '{{ $('dados').first().json.from }}';"
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [1488, 688],
+      "id": "093c0b15-71ae-410b-a0c6-1cd96ee9c10a",
+      "name": "buscar_paciente",
+      "credentials": {
+        "postgres": {
+          "id": "SEU_ID_POSTGRES_AQUI",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('dados').first().json.session }}:{{ $('dados').first().json.from }}:chat_history"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.5,
+      "position": [1360, 704],
+      "id": "68ff3a0a-3c8b-4f86-a7f8-6703294d4e6c",
+      "name": "Memory",
+      "credentials": {
+        "redis": {
+          "id": "SEU_ID_REDIS_AQUI",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [1232, 704],
+      "id": "2136e47d-35c8-48b7-841c-62bb2f8b0324",
+      "name": "Cérebro",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "SEU_ID_DEEPSEEK_AQUI",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "4b49c8ea-7c5a-431a-978e-2f00c5d370d7", "name": "session", "value": "={{ $json.body.session }}", "type": "string" },
+            { "id": "2e112e6e-8435-48e7-96d2-1e35e6edc2bb", "name": "id-mensagens", "value": "={{ $json.body.payload.id }}", "type": "string" },
+            { "id": "0e03583d-f031-4d53-b91d-3bc450003c3a", "name": "from", "value": "={{ ($json.body.payload._data?.Info?.SenderAlt && !$json.body.payload._data.Info.SenderAlt.includes('@lid') ? $json.body.payload._data.Info.SenderAlt : $json.body.payload.from).split('@')[0].split(':')[0] + '@c.us' }}", "type": "string" },
+            { "id": "8d57bf16-9dce-4bec-99dd-52bcc06d5329", "name": "fromMe", "value": "={{ $json.body.payload.fromMe }}", "type": "boolean" },
+            { "id": "bce89703-d12a-48b9-8e91-8271c15b0a92", "name": "body", "value": "={{ $json.body.payload.body }}", "type": "string" }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [16, 176],
+      "id": "b5a74fb7-0c51-41d3-b9b5-bb125f8e96a0",
+      "name": "dados"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('dados').first().json.session }}",
+        "chatId": "={{ $('dados').first().json.from }}"
+      },
+      "type": "n8n-nodes-waha.WAHA",
+      "typeVersion": 202411,
+      "position": [1776, 160],
+      "id": "70d3d3b7-0178-488b-9a9e-9b0a58c824f2",
+      "name": "Start Typing",
+      "credentials": {
+        "wahaApi": {
+          "id": "SEU_ID_WAHA_AQUI",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": { "httpMethod": "POST", "path": "webhook" },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-160, 80],
+      "id": "f7963d85-fdf2-4734-8bb1-ff9399f6ed88",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            { "id": "0f89b0a8-3a2d-4a73-b0b2-0dfe07ce6c4a", "leftValue": "={{ $json.from }}", "rightValue": "5527999999999@c.us", "operator": { "type": "string", "operation": "equals" } }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [624, 176],
+      "id": "26397df0-7d4a-49bf-b611-ca15a40f7c61",
+      "name": "msg da responsavel"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "or",
+          "conditions": [
+            { "id": "19aceed8-5c39-4d62-91e4-4839f7364ec2", "leftValue": "={{ $('dados').first().json.from }}", "rightValue": "@c.us", "operator": { "type": "string", "operation": "endsWith" } }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [384, 192],
+      "id": "65d88a2a-fa01-456d-a939-6f8321871917",
+      "name": "É Paciente Real?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE pacientes SET bot_ativo = false WHERE whatsapp_id = '{{ $('dados').first().json.from }}';"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [624, -240],
+      "id": "688575eb-9865-44fc-ac83-96f10f6ab52c",
+      "name": "pausar o bot",
+      "credentials": {
+        "postgres": {
+          "id": "SEU_ID_POSTGRES_AQUI",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            { "id": "7272e530-c9c2-4169-b4e1-678fbbb34eae", "leftValue": "={{ $('dados').first().json.body }}", "rightValue": "//pausar", "operator": { "type": "string", "operation": "equals" } }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [400, -64],
+      "id": "54f4bec0-e3c4-4360-962b-9cd64e0cb24f",
+      "name": "mensagem do numero do bot"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE pacientes SET bot_ativo = true WHERE whatsapp_id = '{{ $('dados').first().json.from }}';"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [864, -224],
+      "id": "c6560749-acc7-44be-8b3b-71023cff750e",
+      "name": "acordar o bot1",
+      "credentials": {
+        "postgres": {
+          "id": "SEU_ID_POSTGRES_AQUI",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            { "id": "c620a11b-210c-4b44-8e19-6c236b1c99e4", "leftValue": "={{ $('dados').first().json.body }}", "rightValue": "//voltar", "operator": { "type": "string", "operation": "equals" } }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [624, -48],
+      "id": "b3f3e088-6822-4f86-8509-aadb8f73f540",
+      "name": "acordar o bot"
+    },
+    { "parameters": {}, "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [624, 336], "id": "c4f37806-a1df-4d4a-b423-752a1398b3dc", "name": "No Operation, do nothing1" },
+    { "parameters": {}, "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [1056, 112], "id": "fabb933b-c9ae-43c3-b8a1-b968b74902c2", "name": "No Operation, do nothing2" },
+    { "parameters": {}, "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [1056, -32], "id": "280f8428-c8d5-46a9-bcb4-55c95b3aa987", "name": "No Operation" },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT bot_ativo FROM pacientes WHERE whatsapp_id = '{{ $('dados').first().json.from }}';"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [848, 256],
+      "id": "e8b9df7d-3394-4579-bcd4-0366593dbc65",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "SEU_ID_POSTGRES_AQUI",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            { "id": "5c11543b-b9f3-4758-91cd-85bedf6dc4b5", "leftValue": "={{ $json.bot_ativo }}", "operator": { "type": "boolean", "operation": "true", "singleValue": true } }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [1056, 256],
+      "id": "a5ecfa9c-e405-48b7-9a7a-c80c6036d5f9",
+      "name": "If"
+    },
+    { "parameters": {}, "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [1072, 464], "id": "3d4c0bfc-acb5-4d82-a49d-3c8714e61f63", "name": "No Operation, do nothing" },
+    { "parameters": {}, "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [1072, -416], "id": "7566ed3f-3e0b-4572-a814-559fc61b94c1", "name": "No Operation, do nothing3" },
+    { "parameters": {}, "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [1072, -224], "id": "4b4cfc01-e940-40d3-bf50-fccaec79a637", "name": "No Operation, do nothing4" }
+  ],
+  "connections": {
+    "api": { "main": [[{ "node": "mensagem do numero do bot", "type": "main", "index": 0 }], [{ "node": "É Paciente Real?", "type": "main", "index": 0 }]] },
+    "AI Agent": { "main": [[{ "node": "Start Typing", "type": "main", "index": 0 }, { "node": "Send Seen", "type": "main", "index": 0 }]] },
+    "salvar_dados_paciente": { "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]] },
+    "buscar_paciente": { "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]] },
+    "Memory": { "ai_memory": [[{ "node": "AI Agent", "type": "ai_memory", "index": 0 }]] },
+    "Cérebro": { "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]] },
+    "dados": { "main": [[{ "node": "api", "type": "main", "index": 0 }]] },
+    "Start Typing": { "main": [[{ "node": "Wait", "type": "main", "index": 0 }]] },
+    "Webhook": { "main": [[{ "node": "dados", "type": "main", "index": 0 }]] },
+    "msg da responsavel": { "main": [[{ "node": "No Operation, do nothing2", "type": "main", "index": 0 }], [{ "node": "Execute a SQL query", "type": "main", "index": 0 }]] },
+    "É Paciente Real?": { "main": [[{ "node": "msg da responsavel", "type": "main", "index": 0 }], [{ "node": "No Operation, do nothing1", "type": "main", "index": 0 }]] },
+    "mensagem do numero do bot": { "main": [[{ "node": "pausar o bot", "type": "main", "index": 0 }], [{ "node": "acordar o bot", "type": "main", "index": 0 }]] },
+    "acordar o bot": { "main": [[{ "node": "acordar o bot1", "type": "main", "index": 0 }], [{ "node": "No Operation", "type": "main", "index": 0 }]] },
+    "acordar o bot1": { "main": [[{ "node": "No Operation, do nothing4", "type": "main", "index": 0 }]] },
+    "Execute a SQL query": { "main": [[{ "node": "If", "type": "main", "index": 0 }]] },
+    "If": { "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }], [{ "node": "No Operation, do nothing", "type": "main", "index": 0 }]] },
+    "pausar o bot": { "main": [[{ "node": "No Operation, do nothing3", "type": "main", "index": 0 }]] }
+  },
+  "active": true
+}
