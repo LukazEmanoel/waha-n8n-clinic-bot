@@ -1,0 +1,47 @@
+{
+  "name": "Trabalho da faculdade-carteiro",
+  "nodes": [
+    {
+      "parameters": {
+        "schema": { "__rl": true, "mode": "list", "value": "public" },
+        "tableName": { "__rl": true, "value": "pacientes", "mode": "list" },
+        "options": { "eventToListenFor": "Insert" }
+      },
+      "type": "n8n-nodes-base.postgresTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "id": "5e856536-81ec-442e-a704-491837d1558a",
+      "name": "Postgres Trigger",
+      "credentials": {
+        "postgres": {
+          "id": "SEU_ID_POSTGRES_AQUI",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "default",
+        "chatId": "5527999999999@c.us",
+        "text": "🌱 *Novo Paciente no Sistema!* 🌱\nA assistente virtual finalizou um atendimento!\n\n👤 *Nome Completo:* {{ $json.payload.nome }}\n📋 *Disponibilidade:* {{ $json.payload.historico_clinico }}\nEntre em contato com o paciente para confirmar."
+      },
+      "type": "n8n-nodes-waha.WAHA",
+      "typeVersion": 202411,
+      "position": [208, 0],
+      "id": "299f73df-420a-4398-bd1b-7756658cf1a7",
+      "name": "Send a text message",
+      "credentials": {
+        "wahaApi": {
+          "id": "SEU_ID_WAHA_AQUI",
+          "name": "WAHA account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Postgres Trigger": { "main": [[{ "node": "Send a text message", "type": "main", "index": 0 }]] }
+  },
+  "active": true
+}
